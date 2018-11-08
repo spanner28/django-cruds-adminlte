@@ -299,6 +299,11 @@ a:focus {
   padding: 0 15px;
   font-weight: 300;
   overflow: hidden;
+  background-color: #fff;
+  background: url('/static/admin-lte/dist/img/logo.png');
+  background-size: 200px 50px;
+  background-position: 15px 0px;
+  background-repeat: no-repeat;
 }
 .main-header .logo .logo-lg {
   display: block;
