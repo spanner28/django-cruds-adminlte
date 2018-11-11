@@ -1,0 +1,16 @@
+<div class="input-group colorpicker colorpicker-element">
+    <select class="{{ class }}" name="{{ name }}" id="{{ id }}"/>
+{% for val, name in value %}
+	<option value="{{val}}">{{name}}</option>
+{% endfor %}
+    </select>
+    <div class="input-group-addon">
+        <i class="glyphicon glyphicon-plus"></i>
+    </div>
+</div>
+<script>
+$(function () {
+    $(".colorpicker").colorpicker();
+});
+</script>
+
