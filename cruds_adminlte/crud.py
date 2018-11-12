@@ -465,6 +465,16 @@ class CRUDView(object):
             paginate_position = self.paginate_position
             list_filter = self.list_filter
 
+            def get_context_data(self, **kwargs):
+                context = super().get_context_data(**kwargs)
+                context['dataplan'] = 'wahwowowowo'
+
+                import pprint
+                with open("/tmp/out.log", "a+") as fout:
+                    fout.write('CONTEXT: %s\n' % pprint.pformat(context))
+
+                return context
+
             def get_listfilter_queryset(self, queryset):
                 if self.list_filter:
                     filters = get_filters(
