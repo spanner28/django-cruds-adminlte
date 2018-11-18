@@ -359,19 +359,19 @@ class CRUDView(object):
             template_father = self.template_father
             template_blocks = self.template_blocks
             related_fields = self.related_fields
+            multiForm = None
 
             def post(self, request, *args, **kwargs):
-                mForm = self.form_class(data=request.POST)
-                if (isinstance(mForm, MultiModelForm) or isinstance(mForm, MultiForm)):
-                    self.object = mForm.save(commit=True)
+                self.multiForm = self.form_class(data=request.POST)
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    self.object = self.multiForm.save(commit=True)
                     return HttpResponseRedirect(self.get_success_url())
                 else:
                     return super(OCreateView, self).post(request, *args, **kwargs)
 
             def form_valid(self, form):
-                mForm = self.form_class(data=request.POST)
-                if (isinstance(mForm, MultiModelForm) or isinstance(mForm, MultiForm)):
-                    return mForm.is_valid()
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    return self.multiForm.is_valid()
                 else:
                     if not self.related_fields:
                         return super(OCreateView, self).form_valid(form)
@@ -435,6 +435,28 @@ class CRUDView(object):
             template_father = self.template_father
             template_blocks = self.template_blocks
             related_fields = self.related_fields
+            multiForm = None
+
+            def get(self, request, *args, **kwargs):
+                multiForm = self.form_class(data=request.POST)
+                if ('pk' in kwargs):
+                    pk = kwargs['pk']
+                else:
+                    pk = None
+
+                if (isinstance(multiForm, MultiModelForm) or isinstance(multiForm, MultiForm)):
+                    self.objects = multiForm.get_objects(pk)
+                    self.object = next(iter(self.objects.items()))[1]
+
+                return super(OEditView, self).get(request, *args, **kwargs)
+
+            def post(self, request, *args, **kwargs):
+                self.multiForm = self.form_class(data=request.POST)
+                if (isinstance(multiForm, MultiModelForm) or isinstance(multiForm, MultiForm)):
+                    self.object = multiForm.save(commit=True)
+                    return HttpResponseRedirect(self.get_success_url())
+                else:
+                    return super(OUpdateView, self).post(request, *args, **kwargs)
 
             def form_valid(self, form):
                 if not self.related_fields:
