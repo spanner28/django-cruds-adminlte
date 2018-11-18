@@ -21,8 +21,10 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import ugettext_lazy as _
 from django.db.models.query_utils import Q
+from django.db import models
 from django.shortcuts import get_object_or_404
 from cruds_adminlte.filter import get_filters
+from collections import OrderedDict
 import types
 
 from betterforms.multiform import MultiModelForm, MultiForm
@@ -436,19 +438,73 @@ class CRUDView(object):
             template_blocks = self.template_blocks
             related_fields = self.related_fields
             multiForm = None
+            proxyFields = {}
 
             def get(self, request, *args, **kwargs):
-                multiForm = self.form_class(data=request.POST)
+                self.multiForm = self.form_class(data=request.POST)
                 if ('pk' in kwargs):
                     pk = kwargs['pk']
                 else:
                     pk = None
 
-                if (isinstance(multiForm, MultiModelForm) or isinstance(multiForm, MultiForm)):
-                    self.objects = multiForm.get_objects(pk)
-                    self.object = next(iter(self.objects.items()))[1]
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    self.objects = self.multiForm.get_objects(pk)
+                    #self.object = next(iter(self.objects.items()))[1]
+                    self.object = self.multiForm.get_proxy_model(self.objects)
+                    self.multiForm = self.form_class(data=request.POST, instance=self.object)
+                    None
 
                 return super(OEditView, self).get(request, *args, **kwargs)
+
+            def get_object(self):
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    return self.object
+                else:
+                    return super(OEditView, self).get_object()
+
+            def get_urls_and_fields(self, context):
+                include = None
+                if hasattr(self, 'display_fields') and self.view_type == 'detail':
+                    include = getattr(self, 'display_fields')
+
+                if hasattr(self, 'list_fields') and self.view_type == 'list':
+                    include = getattr(self, 'list_fields')
+
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    self.proxyFields = {}
+                    for model_name in self.objects:
+                        for field in self.objects[model_name]._meta.fields:
+#                            if (not isinstance(field, AutoField)):
+                            #setattr(self, field.__str__().split('.')[-1], models.CharField(max_length=100))
+                            objField = models.CharField(max_length=100)
+                            field_label = field.__str__().split('.')[-1]
+                            #objFieldValue = self.objects[model_name].__dict__[field_label]
+                            self.proxyFields['%s__%s' % (model_name, field_label)] = ( field_label, objField )
+                            None
+                    context['fields'] = OrderedDict([ (x, self.proxyFields[x]) for x in self.proxyFields ])
+                else:
+                    context['fields'] = utils.get_fields(self.model, include=include)
+
+                if hasattr(self, 'object') and self.object:
+                    for action in utils.INSTANCE_ACTIONS:
+                        try:
+                            nurl = utils.crud_url_name(self.model, action)
+                            if self.namespace:
+                                nurl = self.namespace + ':' + nurl
+                            url = reverse(nurl, kwargs={'pk': self.object.pk})
+                        except NoReverseMatch:
+                            url = None
+                        context['url_%s' % action] = url
+
+                for action in utils.LIST_ACTIONS:
+                    try:
+                        nurl = utils.crud_url_name(self.model, action)
+                        if self.namespace:
+                            nurl = self.namespace + ':' + nurl
+                        url = reverse(nurl)
+                    except NoReverseMatch:
+                        url = None
+                    context['url_%s' % action] = url
 
             def post(self, request, *args, **kwargs):
                 self.multiForm = self.form_class(data=request.POST)
