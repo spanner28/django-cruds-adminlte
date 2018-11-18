@@ -121,7 +121,9 @@ class SelectManyWidget(Widget):
 
     def render(self, name, value, attrs=None, renderer=None):
         context = self.get_context(name, value, attrs)
+
+        import pprint
+        with open("/tmp/out.log", "a+") as fout:
+            fout.write('%s\n' % pprint.pformat(value))
+
         return mark_safe(loader.render_to_string(self.template_name, context))
-
-
-

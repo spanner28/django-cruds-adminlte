@@ -25,6 +25,7 @@ from django.shortcuts import get_object_or_404
 from cruds_adminlte.filter import get_filters
 import types
 
+from betterforms.multiform import MultiModelForm, MultiForm
 
 class CRUDMixin(object):
 
@@ -359,15 +360,27 @@ class CRUDView(object):
             template_blocks = self.template_blocks
             related_fields = self.related_fields
 
-            def form_valid(self, form):
-                if not self.related_fields:
-                    return super(OCreateView, self).form_valid(form)
+            def post(self, request, *args, **kwargs):
+                mForm = self.form_class(data=request.POST)
+                if (isinstance(mForm, MultiModelForm) or isinstance(mForm, MultiForm)):
+                    self.object = mForm.save(commit=True)
+                    return HttpResponseRedirect(self.get_success_url())
+                else:
+                    return super(OCreateView, self).post(request, *args, **kwargs)
 
-                self.object = form.save(commit=False)
-                for key, value in self.context_rel.items():
-                    setattr(self.object, key, value)
-                self.object.save()
-                return HttpResponseRedirect(self.get_success_url())
+            def form_valid(self, form):
+                mForm = self.form_class(data=request.POST)
+                if (isinstance(mForm, MultiModelForm) or isinstance(mForm, MultiForm)):
+                    return mForm.is_valid()
+                else:
+                    if not self.related_fields:
+                        return super(OCreateView, self).form_valid(form)
+
+                    self.object = form.save(commit=False)
+                    for key, value in self.context_rel.items():
+                        setattr(self.object, key, value)
+                    self.object.save()
+                    return HttpResponseRedirect(self.get_success_url())
 
             def get_success_url(self):
                 url = super(OCreateView, self).get_success_url()
@@ -743,7 +756,6 @@ class UserCRUDView(CRUDView):
 
     def get_create_view(self):
         View = super(UserCRUDView, self).get_create_view()
-
         class UCreateView(View):
 
             def form_valid(self, form):
