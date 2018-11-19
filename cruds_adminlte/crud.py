@@ -426,7 +426,7 @@ class CRUDView(object):
     def get_update_view(self):
         EditViewClass = self.get_update_view_class()
 
-        class OEditView(CRUDMixin, EditViewClass, ProcessFormView):
+        class OEditView(CRUDMixin, EditViewClass):
             namespace = self.namespace
             perms = self.perms['update']
             form_class = self.update_form
@@ -454,15 +454,9 @@ class CRUDView(object):
                     #self.object = next(iter(self.objects.items()))[1]
                     self.object = self.multiForm.get_proxy_model(self.objects)
                     self.model = self.object.__class__
-                    #import pdb; pdb.set_trace()
                     self.multiForm = self.form_class(instance=self.objects)
                     self.form_class = self.form_class(instance=self.objects)
-                    import pprint
-                    with open("/tmp/out.log", "a+") as fout:
-                        fout.write('%s\n' % pprint.pformat('MULTIFORM: GET REQUEST %s' % pprint.pformat(self.multiForm.requestData)))
-                    #self.multiForm.fields = [ x for x in self.multiForm.proxyFields.keys() ]
 
-                #return super().get(request, *args, **kwargs)
                 return super(OEditView, self).get(request, *args, **kwargs)
 
             def get_form(self):
@@ -478,10 +472,6 @@ class CRUDView(object):
                     return super(OEditView, self).get_object()
 
             def get_urls_and_fields(self, context):
-                import pprint
-                with open("/tmp/out.log", "a+") as fout:
-                    fout.write('%s\n' % pprint.pformat('MULTIFORM: BUILD FIELDS'))
-
                 include = None
                 if hasattr(self, 'display_fields') and self.view_type == 'detail':
                     include = getattr(self, 'display_fields')
@@ -522,6 +512,10 @@ class CRUDView(object):
                         url = None
                     context['url_%s' % action] = url
 
+                context['url_detail'] = self.request.path.replace('update', 'detail')
+                context['url_update'] = self.request.path
+                context['url_delete'] = self.request.path.replace('update', 'delete')
+ 
             def post(self, request, *args, **kwargs):
                 self.multiForm = self.form_class(data=request.POST)
                 if (isinstance(multiForm, MultiModelForm) or isinstance(multiForm, MultiForm)):
