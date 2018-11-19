@@ -25,6 +25,7 @@ from django.db import models
 from django.shortcuts import get_object_or_404
 from cruds_adminlte.filter import get_filters
 from collections import OrderedDict
+from django.views.generic.edit import ProcessFormView
 import types
 
 from betterforms.multiform import MultiModelForm, MultiForm
@@ -168,6 +169,7 @@ class CRUDMixin(object):
             if not self.validate_user_perms(request.user, perm,
                                             self.view_type):
                 return HttpResponseForbidden()
+
         return View.dispatch(self, request, *args, **kwargs)
 
 
@@ -424,7 +426,7 @@ class CRUDView(object):
     def get_update_view(self):
         EditViewClass = self.get_update_view_class()
 
-        class OEditView(CRUDMixin, EditViewClass):
+        class OEditView(CRUDMixin, EditViewClass, ProcessFormView):
             namespace = self.namespace
             perms = self.perms['update']
             form_class = self.update_form
@@ -448,16 +450,19 @@ class CRUDView(object):
 
                 if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
                     self.objects = self.multiForm.get_objects(pk)
+                    self.multiForm.set_objects(pk)
                     #self.object = next(iter(self.objects.items()))[1]
-                    #import pdb; pdb.set_trace()
                     self.object = self.multiForm.get_proxy_model(self.objects)
                     self.model = self.object.__class__
-                    self.multiForm = self.form_class(objects=self.objects)
+                    #import pdb; pdb.set_trace()
+                    self.multiForm = self.form_class(instance=self.objects)
+                    self.form_class = self.form_class(instance=self.objects)
                     import pprint
                     with open("/tmp/out.log", "a+") as fout:
-                        fout.write('%s\n' % pprint.pformat('MULTIFORM: GET REQUEST'))
+                        fout.write('%s\n' % pprint.pformat('MULTIFORM: GET REQUEST %s' % pprint.pformat(self.multiForm.requestData)))
                     #self.multiForm.fields = [ x for x in self.multiForm.proxyFields.keys() ]
 
+                #return super().get(request, *args, **kwargs)
                 return super(OEditView, self).get(request, *args, **kwargs)
 
             def get_form(self):
@@ -485,17 +490,13 @@ class CRUDView(object):
                     include = getattr(self, 'list_fields')
 
                 if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
-                    self.proxyFields = {}
-                    for model_name, bound_form in self.multiForm.formsPopulated:
-                        for field in bound_form.fields
-#                            if (not isinstance(field, AutoField)):
-                            #setattr(self, field.__str__().split('.')[-1], models.CharField(max_length=100))
-                            import pdb; pdb.set_trace()
-                            objField = self.multiForm.fields[field]
-                            field_label = field.__str__().split('.')[-1]
-                            #objFieldValue = self.objects[model_name].__dict__[field_label]
-                            self.proxyFields['%s__%s' % (model_name, field_label)] = ( field_label, objField )
-                            None
+                    for fieldName in self.multiForm.requestData.keys():
+                        cls, objField = self.multiForm.requestData[fieldName]
+#                        if (not isinstance(field, AutoField)):
+                        #setattr(self, field.__str__().split('.')[-1], models.CharField(max_length=100))
+                        #objFieldValue = self.objects[model_name].__dict__[field_label]
+                        objField.html_name = '%s' % (fieldName)
+                        self.proxyFields[fieldName] = ( fieldName, objField )
                     context['fields'] = OrderedDict([ (x, self.proxyFields[x]) for x in self.proxyFields ])
                 else:
                     context['fields'] = utils.get_fields(self.model, include=include)
@@ -680,6 +681,11 @@ class CRUDView(object):
         fields = self.fields
         if self.update_form:
             fields = None
+
+        if (isinstance(self.update_form, MultiModelForm) or isinstance(self.update_form, MultiForm)):
+            self.model = self.update_form.object
+            fields = OrderedDict([ (x, self.update_form.proxyFields[x]) for x in self.update_form.proxyFields ])
+
         self.update = self.decorator_update(OUpdateView.as_view(
             model=self.model,
             fields=fields,

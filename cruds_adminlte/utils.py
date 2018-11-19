@@ -70,7 +70,7 @@ def get_fields(model, include=None):
         if field.__class__.__name__ == 'ManyToOneRel':
             field.verbose_name = field.related_name
         fields[name] = [
-            field.verbose_name.title(),
+            (not hasattr(field.verbose_name, 'title')) and 'test' or field.verbose_name.title(),
             field.get_internal_type]
     if include:
         fields = OrderedDict((key, fields[key]) for key in include)
