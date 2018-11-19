@@ -116,7 +116,6 @@ class CRUDMixin(object):
         """
         Adds available urls and names.
         """
-
         context = super(CRUDMixin, self).get_context_data(**kwargs)
         context.update({
             'model_verbose_name': self.model._meta.verbose_name,
@@ -441,7 +440,7 @@ class CRUDView(object):
             proxyFields = {}
 
             def get(self, request, *args, **kwargs):
-                self.multiForm = self.form_class(data=request.POST)
+                self.multiForm = self.form_class()
                 if ('pk' in kwargs):
                     pk = kwargs['pk']
                 else:
@@ -450,11 +449,22 @@ class CRUDView(object):
                 if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
                     self.objects = self.multiForm.get_objects(pk)
                     #self.object = next(iter(self.objects.items()))[1]
+                    #import pdb; pdb.set_trace()
                     self.object = self.multiForm.get_proxy_model(self.objects)
-                    self.multiForm = self.form_class(data=request.POST, instance=self.object)
-                    None
+                    self.model = self.object.__class__
+                    self.multiForm = self.form_class(objects=self.objects)
+                    import pprint
+                    with open("/tmp/out.log", "a+") as fout:
+                        fout.write('%s\n' % pprint.pformat('MULTIFORM: GET REQUEST'))
+                    #self.multiForm.fields = [ x for x in self.multiForm.proxyFields.keys() ]
 
                 return super(OEditView, self).get(request, *args, **kwargs)
+
+            def get_form(self):
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    return self.multiForm
+                else:
+                    return super(OEditView, self).get_form()
 
             def get_object(self):
                 if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
@@ -463,6 +473,10 @@ class CRUDView(object):
                     return super(OEditView, self).get_object()
 
             def get_urls_and_fields(self, context):
+                import pprint
+                with open("/tmp/out.log", "a+") as fout:
+                    fout.write('%s\n' % pprint.pformat('MULTIFORM: BUILD FIELDS'))
+
                 include = None
                 if hasattr(self, 'display_fields') and self.view_type == 'detail':
                     include = getattr(self, 'display_fields')
@@ -472,11 +486,12 @@ class CRUDView(object):
 
                 if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
                     self.proxyFields = {}
-                    for model_name in self.objects:
-                        for field in self.objects[model_name]._meta.fields:
+                    for model_name, bound_form in self.multiForm.formsPopulated:
+                        for field in bound_form.fields
 #                            if (not isinstance(field, AutoField)):
                             #setattr(self, field.__str__().split('.')[-1], models.CharField(max_length=100))
-                            objField = models.CharField(max_length=100)
+                            import pdb; pdb.set_trace()
+                            objField = self.multiForm.fields[field]
                             field_label = field.__str__().split('.')[-1]
                             #objFieldValue = self.objects[model_name].__dict__[field_label]
                             self.proxyFields['%s__%s' % (model_name, field_label)] = ( field_label, objField )
