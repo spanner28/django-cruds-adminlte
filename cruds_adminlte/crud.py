@@ -441,12 +441,8 @@ class CRUDView(object):
             multiForm = None
             proxyFields = {}
 
-            def get(self, request, *args, **kwargs):
+            def get(self, request, pk, *args, **kwargs):
                 self.multiForm = self.form_class()
-                if ('pk' in kwargs):
-                    pk = kwargs['pk']
-                else:
-                    pk = None
 
                 if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
                     self.objects = self.multiForm.get_objects(pk)
@@ -516,10 +512,11 @@ class CRUDView(object):
                 context['url_update'] = self.request.path
                 context['url_delete'] = self.request.path.replace('update', 'delete')
  
-            def post(self, request, *args, **kwargs):
+            def post(self, request, pk, *args, **kwargs):
                 self.multiForm = self.form_class(data=request.POST)
-                if (isinstance(multiForm, MultiModelForm) or isinstance(multiForm, MultiForm)):
-                    self.object = multiForm.save(commit=True)
+                self.multiForm.set_objects(pk)
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    self.object = self.multiForm.save(commit=True)
                     return HttpResponseRedirect(self.get_success_url())
                 else:
                     return super(OUpdateView, self).post(request, *args, **kwargs)
