@@ -518,10 +518,10 @@ class CRUDView(object):
                 context['url_delete'] = self.request.path.replace('update', 'delete')
  
             def post(self, request, pk, *args, **kwargs):
-                self.multiForm = self.form_class(data=request.POST)
-                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
-                    self.multiForm.set_objects(pk)
-                    self.object = self.multiForm.save(commit=True)
+                self.tmpForm = self.form_class(data=request.POST)
+                if (isinstance(self.tmpForm, MultiModelForm) or isinstance(self.tmpForm, MultiForm)):
+                    self.tmpForm.set_objects(pk)
+                    self.object = self.tmpForm.save(commit=True)
                     return HttpResponseRedirect(self.get_success_url())
                 else:
                     return super(OEditView, self).post(request, *args, **kwargs)
