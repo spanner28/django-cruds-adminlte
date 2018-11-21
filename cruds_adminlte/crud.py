@@ -153,7 +153,10 @@ class CRUDMixin(object):
         self.context_rel = {}
         getparams = []
         self.getparams = ''
+
+        #TODO: fix search in related tables
         for related in self.related_fields:
+            #TODO: pk = request.GET something like model name??
             pk = self.request.GET.get(related, '')
             if pk:
                 Classrelated = utils.get_related_class_field(
@@ -508,6 +511,7 @@ class CRUDView(object):
                         url = None
                     context['url_%s' % action] = url
 
+                context['url_list'] = self.request.path.replace('update', 'list')
                 context['url_detail'] = self.request.path.replace('update', 'detail')
                 context['url_update'] = self.request.path
                 context['url_delete'] = self.request.path.replace('update', 'delete')
