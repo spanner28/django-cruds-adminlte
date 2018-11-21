@@ -519,30 +519,6 @@ class CRUDView(object):
                     self.object = self.tmpForm.save(commit=True)
                     return HttpResponseRedirect(self.get_success_url())
                 else:
-
-                    # updating related items
-                    self.object = self.tmpForm.save(commit=False)
-                    updateObject = self.object._meta.model.objects.get(pk=pk)
-                    for fkField in [ field for field in updateObject._meta.fields if type(field) == models.fields.related.ForeignKey ]:
-                        fkFieldName = fkField.name # peer
-                        fkFieldAttName = fkField.attname # group.peer_id
-                        fkModel = fkField.related_model # class Peer
-                        fkValue = request.POST.get(fkFieldName, None) # pk=1 e.g.
-                        if (not fkValue in ['', None]):
-                            # associate with related got peer_id formField, got peer from request in fkValue, now update fk in main table for this related item
-                            if hasattr(updateObject, fkFieldName):
-                                updateModel = fkModel.objects.filter(pk=fkValue)
-                                if (len(updateModel) > 0):
-                                    updateModel = updateModel[0]
-                                    setattr(updateObject, fkFieldName, updateModel) # group.peer = new model
-                                    updateObject.save(force_update=True)
-                        else:
-                            # break relation, set to null. peer_id = ''
-                            if hasattr(updateObject, fkFieldName):
-                                setattr(updateObject, fkFieldName, None) # group.peer = new model
-                                updateObject.save(force_update=True)
-
-
                     return super(OEditView, self).post(request, *args, **kwargs)
 
             def form_valid(self, form):
