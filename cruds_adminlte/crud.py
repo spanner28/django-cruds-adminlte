@@ -7,6 +7,7 @@ Free as freedom will be 26/8/2016
 '''
 
 
+import os
 from django.conf.urls import url, include
 from django.contrib.auth.decorators import login_required
 from django.http.response import HttpResponseRedirect, HttpResponseForbidden
@@ -511,19 +512,19 @@ class CRUDView(object):
                         url = None
                     context['url_%s' % action] = url
 
-                context['url_list'] = self.request.path.replace('update', 'list')
+                context['url_list'] = str(os.sep).join([ x for x in self.request.path.split(os.sep) if not utils.is_number(x) ]).replace('update', 'list')
                 context['url_detail'] = self.request.path.replace('update', 'detail')
                 context['url_update'] = self.request.path
                 context['url_delete'] = self.request.path.replace('update', 'delete')
  
             def post(self, request, pk, *args, **kwargs):
                 self.multiForm = self.form_class(data=request.POST)
-                self.multiForm.set_objects(pk)
                 if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    self.multiForm.set_objects(pk)
                     self.object = self.multiForm.save(commit=True)
                     return HttpResponseRedirect(self.get_success_url())
                 else:
-                    return super(OUpdateView, self).post(request, *args, **kwargs)
+                    return super(OEditView, self).post(request, *args, **kwargs)
 
             def form_valid(self, form):
                 if not self.related_fields:
