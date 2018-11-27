@@ -520,8 +520,12 @@ class CRUDView(object):
             def post(self, request, pk, *args, **kwargs):
                 self.tmpForm = self.form_class(data=request.POST)
                 if (isinstance(self.tmpForm, MultiModelForm) or isinstance(self.tmpForm, MultiForm)):
-                    self.tmpForm.set_objects(pk)
-                    self.object = self.tmpForm.save(commit=True)
+                    self.tmpForm.set_objects(pk, data=request.POST)
+                    if self.tmpForm.is_valid():
+                        self.object = self.tmpForm.save(commit=True)
+                    else:
+                        self.object = self.tmpForm.save(commit=False)
+
                     return HttpResponseRedirect(self.get_success_url())
                 else:
                     return super(OEditView, self).post(request, *args, **kwargs)
