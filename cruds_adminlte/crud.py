@@ -482,9 +482,6 @@ class CRUDView(object):
                 if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
                     for fieldName in self.multiForm.requestData.keys():
                         cls, objField = self.multiForm.requestData[fieldName]
-#                        if (not isinstance(field, AutoField)):
-                        #setattr(self, field.__str__().split('.')[-1], models.CharField(max_length=100))
-                        #objFieldValue = self.objects[model_name].__dict__[field_label]
                         objField.html_name = '%s' % (fieldName)
                         self.proxyFields[fieldName] = ( fieldName, objField )
                     context['fields'] = OrderedDict([ (x, self.proxyFields[x]) for x in self.proxyFields ])
