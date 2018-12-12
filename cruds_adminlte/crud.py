@@ -367,6 +367,10 @@ class CRUDView(object):
             related_fields = self.related_fields
             multiForm = None
 
+            def get(self, request, *args, **kwargs):
+                self.multiForm = self.form_class(data=request.GET)
+                return super(OCreateView, self).get(request, *args, **kwargs)
+
             def post(self, request, *args, **kwargs):
                 self.multiForm = self.form_class(data=request.POST)
                 if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
