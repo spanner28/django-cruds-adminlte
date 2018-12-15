@@ -368,7 +368,7 @@ class CRUDView(object):
             multiForm = None
 
             def get(self, request, *args, **kwargs):
-                self.multiForm = self.form_class(data=request.GET)
+                self.multiForm = self.form_class()
                 return super(OCreateView, self).get(request, *args, **kwargs)
 
             def post(self, request, *args, **kwargs):
@@ -376,15 +376,12 @@ class CRUDView(object):
                 if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
                     if self.multiForm.is_valid():
                         self.object = self.multiForm.save(commit=True)
+                        return HttpResponseRedirect(self.get_success_url())
                     else:
                         self.object = None
                         self.form = self.multiForm
-
                         self.multiForm.request = request
-
                         return super(OCreateView, self).post(request, *args, **kwargs)
-
-                    return HttpResponseRedirect(self.get_success_url())
                 else:
                     return super(OCreateView, self).post(request, *args, **kwargs)
 
@@ -535,10 +532,12 @@ class CRUDView(object):
                     self.tmpForm.set_objects(pk, data=request.POST)
                     if self.tmpForm.is_valid():
                         self.object = self.tmpForm.save(commit=True)
+                        return HttpResponseRedirect(self.get_success_url())
                     else:
-                        self.object = self.tmpForm.save(commit=False)
-
-                    return HttpResponseRedirect(self.get_success_url())
+                        #self.object = self.tmpForm.save(commit=False)
+                        self.form = self.tmpForm
+                        self.tmpForm.request = request
+                        return super(OEditView, self).post(request, *args, **kwargs)
                 else:
                     return super(OEditView, self).post(request, *args, **kwargs)
 
