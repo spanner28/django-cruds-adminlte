@@ -379,8 +379,8 @@ class CRUDView(object):
                         return HttpResponseRedirect(self.get_success_url())
                     else:
                         self.object = None
-                        self.form = self.multiForm
                         self.multiForm.request = request
+                        self.form = self.multiForm
                         return super(OCreateView, self).post(request, *args, **kwargs)
                 else:
                     return super(OCreateView, self).post(request, *args, **kwargs)
