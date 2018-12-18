@@ -2,6 +2,10 @@
     color: #fff !important;
 }
 
+.btn-default {
+    color: #444 !important;
+}
+
 .nav-tabs>li {
     margin-bottom: -2px;
 }
