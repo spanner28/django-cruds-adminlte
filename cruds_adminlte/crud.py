@@ -65,6 +65,9 @@ class CRUDMixin(object):
             self.getparams += "&".join(filter_params)
 
     def validate_user_perms(self, user, perm, view):
+        obj = self.get_object()
+        if (user.has_perm(perm, obj)):
+            return True
         if isinstance(perm, types.FunctionType):
             return perm(user, view)
         return user.has_perm(perm)
