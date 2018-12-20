@@ -67,9 +67,12 @@ class CRUDMixin(object):
     def validate_user_perms(self, user, perm, view):
 
         if (hasattr(self, 'get_object') and view == 'update'):
-            obj = self.get_object()
-            if (user.has_perm(perm, obj)):
-                return True
+            try:
+                obj = self.get_object()
+                if (user.has_perm(perm, obj)):
+                    return True
+            except:
+                None
         if isinstance(perm, types.FunctionType):
             return perm(user, view)
         return user.has_perm(perm)
