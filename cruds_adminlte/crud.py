@@ -905,3 +905,30 @@ class UserCRUDView(CRUDView):
                 queryset = queryset.filter(user=self.request.user)
                 return queryset
         return UListView
+
+class JSONView(CRUDView):
+    """
+        JSONView extends CRUDView to provide a JSON representation of the form
+
+        It converts the html views into json using the extra templates, only for create and update views
+        basename + '/create_json.html'
+        basename + '/update_json.html'
+        Note: also import <applabel>/<model>/<basename>/<view type>.html
+    """
+    def __init__(self, namespace=None, model=None, template_name_base=None):
+        if namespace:
+            self.namespace = namespace
+        if model:
+            self.model = model
+        if template_name_base:
+            self.template_name_base = template_name_base
+
+        basename = self.get_base_name()
+        self.inicialize_views_available()
+        self.initialize_perms()
+        if 'create' in self.views_available:
+            self.initialize_create(basename + '/create_json.html')
+
+        if 'update' in self.views_available:
+            self.initialize_update(basename + '/update_json.html')
+

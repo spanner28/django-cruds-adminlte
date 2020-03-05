@@ -1,0 +1,7 @@
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% if form.helper %}
+	{% crispy_json form %}
+{% else %}
+	{{ form|crispy_json }}
+{% endif %}
