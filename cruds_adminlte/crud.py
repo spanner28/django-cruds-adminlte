@@ -374,6 +374,7 @@ class CRUDView(object):
             template_blocks = self.template_blocks
             related_fields = self.related_fields
             multiForm = None
+            self.object = None
 
             def get(self, request, *args, **kwargs):
                 self.multiForm = self.form_class()
@@ -906,7 +907,7 @@ class UserCRUDView(CRUDView):
                 return queryset
         return UListView
 
-class JSONView(CRUDView):
+class JSONView(CRUDView, object):
     """
         JSONView extends CRUDView to provide a JSON representation of the form
 
@@ -932,3 +933,213 @@ class JSONView(CRUDView):
         if 'update' in self.views_available:
             self.initialize_update(basename + '/update_json.html')
 
+    def get_urls(self):
+
+        pre = ""
+        try:
+            if self.cruds_url:
+                pre = "%s/" % self.cruds_url
+        except AttributeError:
+            pre = ""
+        base_name = "%s%s/%s" % (pre, self.model._meta.app_label,
+                                 self.model.__name__.lower())
+        myurls = []
+        if 'create' in self.views_available:
+            myurls.append(url("^%s_json/create$" % (base_name,),
+                              self.create,
+                              name=utils.crud_url_name(
+                                  self.model, 'create', prefix=self.urlprefix))
+                          )
+        if 'update' in self.views_available:
+            myurls.append(url("^%s_json/(?P<pk>[^/]+)/update$" % (base_name,),
+                              self.update,
+                              name=utils.crud_url_name(
+                                  self.model, 'update', prefix=self.urlprefix))
+                          )
+        myurls += self.add_inlines(base_name)
+        return myurls
+
+    def get_create_view(self):
+        CreateViewClass = self.get_create_view_class()
+
+        class OCreateView(CRUDMixin, CreateViewClass):
+            namespace = self.namespace
+            perms = self.perms['create']
+            all_perms = self.perms
+            form_class = self.add_form
+            view_type = 'create'
+            views_available = self.views_available[:]
+            check_perms = self.check_perms
+            template_father = self.template_father
+            template_blocks = self.template_blocks
+            related_fields = self.related_fields
+            multiForm = None
+            self.object = None
+
+            def get(self, request, *args, **kwargs):
+                self.multiForm = self.form_class()
+                self.get_context_data()
+                return super(OCreateView, self).get(request, *args, **kwargs)
+
+            def post(self, request, *args, **kwargs):
+                self.multiForm = self.form_class(data=request.POST)
+                self.get_context_data()
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    if self.multiForm.is_valid():
+                        self.object = self.multiForm.save(commit=True)
+                        return HttpResponseRedirect(self.get_success_url())
+                    else:
+                        self.object = None
+                        self.multiForm.request = request
+                        self.form = self.multiForm
+                        return super(OCreateView, self).post(request, *args, **kwargs)
+                else:
+                    return super(OCreateView, self).post(request, *args, **kwargs)
+
+            def get_form(self):
+                return self.multiForm
+
+            def form_valid(self, form):
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    return self.multiForm.is_valid()
+                else:
+                    if not self.related_fields:
+                        return super(OCreateView, self).form_valid(form)
+
+                    self.object = form.save(commit=False)
+                    for key, value in self.context_rel.items():
+                        setattr(self.object, key, value)
+                    self.object.save()
+                    return HttpResponseRedirect(self.get_success_url())
+
+            def get_success_url(self):
+                url = super(OCreateView, self).get_success_url()
+                if (self.getparams):  # fixed filter create action
+                    url += '?' + self.getparams
+                return url
+
+        return OCreateView
+
+
+    def get_update_view(self):
+        EditViewClass = self.get_update_view_class()
+
+        class OEditView(CRUDMixin, EditViewClass):
+            namespace = self.namespace
+            perms = self.perms['update']
+            form_class = self.update_form
+            all_perms = self.perms
+            view_type = 'update'
+            inlines = self.inlines
+            views_available = self.views_available[:]
+            check_perms = self.check_perms
+            template_father = self.template_father
+            template_blocks = self.template_blocks
+            related_fields = self.related_fields
+            multiForm = None
+            proxyFields = {}
+            self.object = None
+
+            def get(self, request, pk, *args, **kwargs):
+                self.multiForm = self.form_class()
+                self.get_context_data()
+
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    self.objects = self.multiForm.get_objects(pk)
+                    self.multiForm.set_objects(pk)
+                    #self.object = next(iter(self.objects.items()))[1]
+                    self.object = self.multiForm.get_proxy_model(self.objects)
+                    self.model = self.object.__class__
+                    self.multiForm = self.form_class(instance=self.objects)
+                    self.form_class = self.form_class(instance=self.objects)
+
+                return super(OEditView, self).get(request, *args, **kwargs)
+
+            def get_form(self):
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    return self.multiForm
+                else:
+                    return super(OEditView, self).get_form()
+
+            def get_object(self):
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    return self.object
+                else:
+                    return super(OEditView, self).get_object()
+
+            def get_urls_and_fields(self, context):
+                include = None
+                if hasattr(self, 'display_fields') and self.view_type == 'detail':
+                    include = getattr(self, 'display_fields')
+
+                if hasattr(self, 'list_fields') and self.view_type == 'list':
+                    include = getattr(self, 'list_fields')
+
+                if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
+                    for fieldName in self.multiForm.requestData.keys():
+                        cls, objField = self.multiForm.requestData[fieldName]
+                        objField.html_name = '%s' % (fieldName)
+                        self.proxyFields[fieldName] = ( fieldName, objField )
+                    context['fields'] = OrderedDict([ (x, self.proxyFields[x]) for x in self.proxyFields ])
+                else:
+                    context['fields'] = utils.get_fields(self.model, include=include)
+
+                if hasattr(self, 'object') and self.object:
+                    for action in utils.INSTANCE_ACTIONS:
+                        try:
+                            nurl = utils.crud_url_name(self.model, action)
+                            if self.namespace:
+                                nurl = self.namespace + ':' + nurl
+                            url = reverse(nurl, kwargs={'pk': self.object.pk})
+                        except NoReverseMatch:
+                            url = None
+                        context['url_%s' % action] = url
+
+                for action in utils.LIST_ACTIONS:
+                    try:
+                        nurl = utils.crud_url_name(self.model, action)
+                        if self.namespace:
+                            nurl = self.namespace + ':' + nurl
+                        url = reverse(nurl)
+                    except NoReverseMatch:
+                        url = None
+                    context['url_%s' % action] = url
+
+                context['url_list'] = str(os.sep).join([ x for x in self.request.path.split(os.sep) if not utils.is_number(x) ]).replace('update', 'list')
+                context['url_detail'] = self.request.path.replace('update', 'detail')
+                context['url_update'] = self.request.path
+                context['url_delete'] = self.request.path.replace('update', 'delete')
+
+            def post(self, request, pk, *args, **kwargs):
+                self.tmpForm = self.form_class(data=request.POST)
+                self.get_context_data()
+                if (isinstance(self.tmpForm, MultiModelForm) or isinstance(self.tmpForm, MultiForm)):
+                    self.tmpForm.set_objects(pk, data=request.POST)
+                    if self.tmpForm.is_valid():
+                        self.object = self.tmpForm.save(commit=True)
+                        return HttpResponseRedirect(self.get_success_url())
+                    else:
+                        #self.object = self.tmpForm.save(commit=False)
+                        self.form = self.tmpForm
+                        self.tmpForm.request = request
+                        return super(OEditView, self).post(request, *args, **kwargs)
+                else:
+                    return super(OEditView, self).post(request, *args, **kwargs)
+
+            def form_valid(self, form):
+                if not self.related_fields:
+                    return super(OEditView, self).form_valid(form)
+
+                self.object = form.save(commit=False)
+                for key, value in self.context_rel.items():
+                    setattr(self.object, key, value)
+                self.object.save()
+                return HttpResponseRedirect(self.get_success_url())
+
+            def get_success_url(self):
+                url = super(OEditView, self).get_success_url()
+                if (self.getparams):  # fixed filter edit action
+                    url += '?' + self.getparams
+                return url
+
+        return OEditView
