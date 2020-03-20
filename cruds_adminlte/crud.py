@@ -974,14 +974,15 @@ class JSONView(CRUDView, object):
             template_blocks = self.template_blocks
             related_fields = self.related_fields
             multiForm = None
-            self.object = None
 
             def get(self, request, *args, **kwargs):
+                self.object = None
                 self.multiForm = self.form_class()
                 self.get_context_data()
                 return super(OCreateView, self).get(request, *args, **kwargs)
 
             def post(self, request, *args, **kwargs):
+                self.object = None
                 self.multiForm = self.form_class(data=request.POST)
                 self.get_context_data()
                 if (isinstance(self.multiForm, MultiModelForm) or isinstance(self.multiForm, MultiForm)):
