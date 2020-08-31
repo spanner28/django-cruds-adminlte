@@ -1,0 +1,70 @@
+<div class="input-group date">
+    <div class="input-group-addon">
+        <i class="fa {% if icon %}{{ icon }}{% else %}fa-camera{% endif %}"></i>
+    </div>
+    <input type="file" class="{{ class }}" name="{{ name }}" id="{{ id }}" value="{{ value }}" />
+    <img class="{{ class }}" name="{{ name }}" id="{{ id }}_thumb" src="{{ value }}" style="width: 500px; height: 200px"/>
+</div>
+<script>
+function Uint8ToString(u8a) {
+  var CHUNK_SZ = 0x8000;
+  var c = [];
+  for (var i=0; i < u8a.length; i+=CHUNK_SZ) {
+    c.push(String.fromCharCode.apply(null, u8a.subarray(i, i+CHUNK_SZ)));
+  }
+  return c.join("");
+}
+// Usage
+//var u8 = new Uint8Array([65, 66, 67, 68]);
+//var b64encoded = btoa(Uint8ToString(u8));
+
+var control = document.getElementById("{{ id }}");
+var controlThumb = document.getElementById("{{ id }}_thumb");
+control.addEventListener("change", function(event) {
+    // When the control has changed, there are new files
+    var files = control.files;
+    for (var i = 0; i < files.length; i++) {
+        /*
+        console.log("Filename: " + files[i].name);
+        console.log("Type: " + files[i].type);
+        console.log("Size: " + files[i].size + " bytes");
+        */
+
+        var blob = files[i]; // See step 1 above
+
+        blob.stream().getReader().read().then((value) => {
+            var b64Encoded = btoa(Uint8ToString(value.value));
+            imgData = 'data:' + blob.type + ';base64,' + b64Encoded
+            control.setAttribute('value', imgData)
+            controlThumb.setAttribute('src', imgData)
+        })
+
+    }
+}, false);
+
+var target = document.getElementById("{{ id }}");
+target.addEventListener("dragover", function(event) {
+    event.preventDefault();
+}, false);
+
+target.addEventListener("drop", function(event) {
+    // Cancel default actions
+    event.preventDefault();
+    var files = event.dataTransfer.files;
+    for (var i = 0; i < files.length; i++) {
+        /*
+        console.log("Filename: " + files[i].name);
+        console.log("Type: " + files[i].type);
+        console.log("Size: " + files[i].size + " bytes");
+        */
+        var blob = files[i]; // See step 1 above
+
+        blob.stream().getReader().read().then((value) => {
+            var b64Encoded = btoa(Uint8ToString(value.value));
+            imgData = 'data:' + blob.type + ';base64,' + b64Encoded
+            control.setAttribute('value', imgData)
+            controlThumb.setAttribute('src', imgData)
+        })
+    }
+}, false);
+</script>
