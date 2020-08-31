@@ -2,7 +2,8 @@
     <div class="input-group-addon">
         <i class="fa {% if icon %}{{ icon }}{% else %}fa-camera{% endif %}"></i>
     </div>
-    <input type="file" class="{{ class }}" name="{{ name }}" id="{{ id }}" value="{{ value }}" />
+    <input type="hidden" class="{{ class }}" name="{{ name }}" id="{{ id }}" value="{{ value }}" />
+    <input type="file" class="{{ class }}" name="{{ name }}_control" id="{{ id }}_control" value="{{ value }}" />
     <img class="{{ class }}" name="{{ name }}" id="{{ id }}_thumb" src="{{ value }}" style="width: 500px; height: 200px"/>
 </div>
 <script>
@@ -18,7 +19,8 @@ function Uint8ToString(u8a) {
 //var u8 = new Uint8Array([65, 66, 67, 68]);
 //var b64encoded = btoa(Uint8ToString(u8));
 
-var control = document.getElementById("{{ id }}");
+var hiddenControl = document.getElementById("{{ id }}");
+var control = document.getElementById("{{ id }}_control");
 var controlThumb = document.getElementById("{{ id }}_thumb");
 control.addEventListener("change", function(event) {
     // When the control has changed, there are new files
@@ -35,6 +37,7 @@ control.addEventListener("change", function(event) {
         blob.stream().getReader().read().then((value) => {
             var b64Encoded = btoa(Uint8ToString(value.value));
             imgData = 'data:' + blob.type + ';base64,' + b64Encoded
+            hiddenControl.setAttribute('value', imgData)
             control.setAttribute('value', imgData)
             controlThumb.setAttribute('src', imgData)
         })
@@ -42,7 +45,7 @@ control.addEventListener("change", function(event) {
     }
 }, false);
 
-var target = document.getElementById("{{ id }}");
+var target = document.getElementById("{{ id }}_control");
 target.addEventListener("dragover", function(event) {
     event.preventDefault();
 }, false);
@@ -62,6 +65,7 @@ target.addEventListener("drop", function(event) {
         blob.stream().getReader().read().then((value) => {
             var b64Encoded = btoa(Uint8ToString(value.value));
             imgData = 'data:' + blob.type + ';base64,' + b64Encoded
+            hiddenControl.setAttribute('value', imgData)
             control.setAttribute('value', imgData)
             controlThumb.setAttribute('src', imgData)
         })
