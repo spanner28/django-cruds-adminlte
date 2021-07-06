@@ -19,6 +19,12 @@ if hasattr(register, 'assignment_tag'):
 else:
     register_tag = register.simple_tag
 
+@register.filter
+def get_dict(obj, attr):
+    """
+    Filter returns obj attribute.
+    """
+    return obj[attr]
 
 @register.filter
 def get_attr(obj, attr):

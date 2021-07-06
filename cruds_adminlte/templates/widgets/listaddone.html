@@ -1,0 +1,35 @@
+{% load crud_tags %}
+<div class="input-group">
+    <!--Add a {{model_name}}
+    <textarea class="{{ class }}" name="{{ name }}" id="{{ id }}"></textarea>
+    <br/>-->
+    <table id="datatable" class="table table-responsive table-bordered table-hover">
+	 <thead>
+	  <tr>
+		{% for lf in list_fields %}
+		   <th class="th-field-name th-fieldtype-charfield">{{lf|title}}</th>
+		{% endfor %}
+	  </tr>
+	 </thead>
+	 <tbody>
+		{% for item in items %}
+		  <tr>
+			{% for lf in list_fields %}
+			   <th class="th-field-{{lf}} th-fieldtype-charfield">{{item|get_dict:lf}}</th>
+			{% endfor %}
+		{% endfor %}
+		  </tr>
+	 </tbody>
+    </table>
+    <!--<div class="input-group-addon">
+        <i class="glyphicon glyphicon-plus"></i>
+    </div>-->
+</div>
+<script>
+/*
+$(function () {
+    $(".colorpicker").colorpicker();
+});
+*/
+</script>
+

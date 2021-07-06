@@ -138,9 +138,48 @@ class SelectManyWidget(Widget):
 
     def render(self, name, value, attrs=None, renderer=None):
         context = self.get_context(name, value, attrs)
-
-        import pprint
-        with open("/tmp/out.log", "a+") as fout:
-            fout.write('%s\n' % pprint.pformat(value))
-
         return mark_safe(loader.render_to_string(self.template_name, context))
+
+class ListAddOneWidget(Widget):
+
+    template_name = 'widgets/listaddone.html'
+
+    def get_context(self, name, value, attrs=None):
+        context = dict(self.attrs.items())
+        if attrs is not None:
+            context.update(attrs)
+
+        context['name'] = name
+        if value is not None:
+            context['value'] = value
+            if 'model' in context and 'list_fields' in context:
+                context['items'] = self.list_display(context['model'], value, context['list_fields'])
+                context['model_name'] = context['model'].__name__
+
+        return context
+
+    def render(self, name, value, attrs=None, renderer=None):
+        context = self.get_context(name, value, attrs)
+        return mark_safe(loader.render_to_string(self.template_name, context))
+
+    def list_model(self, model, ids = []):
+        manager = getattr(model, 'objects')
+        return manager.filter(**{'%s__in' % model()._meta.pk.name: ids}).all()
+
+    def list_display(self, model, ids, list_fields = []):
+        items = self.list_model(model, ids)
+        resItems = []
+        for item in items:
+            obj = {}
+            for lf in list_fields:
+                if len(lf.split('__')) > 1:
+                    # find related field
+                    # todo: support recursive __
+                    fieldParts = lf.split('__')
+                    relatedObject = getattr(item, fieldParts[0])
+                    obj[lf] = getattr(relatedObject, fieldParts[1])
+                else:
+                    obj[lf] = getattr(item, lf)
+
+            resItems.append(obj)
+        return resItems
